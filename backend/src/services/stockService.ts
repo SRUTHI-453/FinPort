@@ -32,7 +32,7 @@ async function fetchCMP(ticker: string): Promise<number> {
 
       if (!res.ok) continue;
 
-      const data = await res.json();
+      const data = await res.json() as any;
 
       // v8 chart response
       const chartPrice = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
@@ -76,7 +76,7 @@ async function fetchFundamentals(ticker: string): Promise<{
       const res = await fetch(url, { headers: HEADERS });
       if (!res.ok) continue;
 
-      const data = await res.json();
+      const data = await res.json() as any;
       const stats = data?.quoteSummary?.result?.[0]?.defaultKeyStatistics;
 
       const peRatio = stats?.trailingPE?.raw ?? null;
