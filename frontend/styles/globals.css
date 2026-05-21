@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap');
+
+:root {
+  --neon-green: #00ff88;
+  --neon-cyan: #00e5ff;
+  --neon-gold: #ffd700;
+  --neon-red: #ff3366;
+  --dark-bg: #020408;
+  --panel-bg: rgba(0, 20, 40, 0.85);
+  --border-glow: rgba(0, 229, 255, 0.3);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--dark-bg);
+  color: #e0f0ff;
+  font-family: 'Rajdhani', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+td { transition: color 0.4s ease, background 0.4s ease; }
+
+@keyframes glow-pulse {
+  0%, 100% { text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan); }
+  50% { text-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan), 0 0 80px var(--neon-cyan); }
+}
+@keyframes border-glow {
+  0%, 100% { box-shadow: 0 0 5px var(--neon-cyan), inset 0 0 5px rgba(0,229,255,0.05); }
+  50% { box-shadow: 0 0 20px var(--neon-cyan), 0 0 40px rgba(0,229,255,0.3), inset 0 0 10px rgba(0,229,255,0.1); }
+}
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  96% { opacity: 0.6; }
+  97% { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes gain-flash {
+  0%, 100% { background: transparent; }
+  50% { background: rgba(0,255,136,0.15); }
+}
+@keyframes loss-flash {
+  0%, 100% { background: transparent; }
+  50% { background: rgba(255,51,102,0.15); }
+}
+@keyframes dashboardReveal {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+    filter: blur(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
