@@ -1,14 +1,4 @@
 // src/services/portfolioService.ts
-// ─────────────────────────────────────────────────────────────────────────────
-// Pure calculation logic — no external API calls here.
-//
-// Responsibilities:
-//   1. Merge static holdings + live prices → compute investment, gain/loss, %
-//   2. Group computed rows by sector → compute sector-level summaries
-//
-// Keeping calculations separate from API calls makes this easy to test
-// and reason about independently.
-// ─────────────────────────────────────────────────────────────────────────────
 
 import {
   StockHolding,

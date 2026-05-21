@@ -1,24 +1,10 @@
 // src/data/portfolio.ts
-// ─────────────────────────────────────────────────────────────────────────────
-// Static portfolio holdings — sourced from E555815F_58D02905OB.xlsx
-//
-// NO DATABASE NEEDED:
-//   Holdings (stock name, buy price, qty) are static — they don't change at
-//   runtime. Live data (CMP, P/E, EPS) is always fetched fresh from
-//   Yahoo Finance and Google Finance. A database would only be needed if
-//   users could add/edit their own holdings dynamically.
-//
-// HOW TO UPDATE:
-//   Add or remove stocks here. Ticker format:
-//     .NS suffix = NSE  (e.g. HDFCBANK.NS)
-//     .BO suffix = BSE  (e.g. HDFCBANK.BO)
-// ─────────────────────────────────────────────────────────────────────────────
 
 import { StockHolding } from "../types";
 
 export const PORTFOLIO_HOLDINGS: StockHolding[] = [
 
-  // ── Financial Sector ──────────────────────────────────────────────────────
+  // Financial Sector 
   {
     id: "fin-1",
     particulars: "HDFC Bank",
@@ -65,7 +51,7 @@ export const PORTFOLIO_HOLDINGS: StockHolding[] = [
     qty: 100,
   },
 
-  // ── Tech Sector ───────────────────────────────────────────────────────────
+  // Tech Sector
   {
     id: "tech-1",
     particulars: "Affle India",

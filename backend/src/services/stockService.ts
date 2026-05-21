@@ -1,83 +1,117 @@
 // src/services/stockService.ts
-
 import NodeCache from "node-cache";
 import { LiveStockData } from "../types";
 
-const cache = new NodeCache({ stdTTL: 15, checkperiod: 20 });
+const cache = new NodeCache({ stdTTL: 30, checkperiod: 40 });
 
 const HEADERS = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
-  "Accept": "application/json",
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "application/json, text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br",
+  "Origin": "https://finance.yahoo.com",
+  "Referer": "https://finance.yahoo.com/",
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Fetch ALL data (CMP + P/E + EPS) from Yahoo v8 chart endpoint in ONE call
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Fetch CMP with multiple fallback endpoints ────────────────────────────
+async function fetchCMP(ticker: string): Promise<number> {
+  const cacheKey = `cmp_${ticker}`;
+  const cached = cache.get<number>(cacheKey);
+  if (cached !== undefined && cached > 0) return cached;
 
-async function fetchYahooData(ticker: string): Promise<{
-  cmp: number;
+  const endpoints = [
+    `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
+    `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`,
+    `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${ticker}`,
+    `https://query2.finance.yahoo.com/v7/finance/quote?symbols=${ticker}`,
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, { headers: HEADERS });
+
+      if (!res.ok) continue;
+
+      const data = await res.json();
+
+      // v8 chart response
+      const chartPrice = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if (chartPrice && chartPrice > 0) {
+        cache.set(cacheKey, chartPrice);
+        return chartPrice;
+      }
+
+      // v7 quote response
+      const quotePrice = data?.quoteResponse?.result?.[0]?.regularMarketPrice;
+      if (quotePrice && quotePrice > 0) {
+        cache.set(cacheKey, quotePrice);
+        return quotePrice;
+      }
+
+    } catch (err) {
+      console.error(`[CMP] ${ticker} failed on ${url}:`, (err as Error).message);
+    }
+  }
+
+  console.error(`[CMP FAILED] ${ticker} — all endpoints returned 0`);
+  return 0;
+}
+
+// ── Fetch fundamentals ────────────────────────────────────────────────────
+async function fetchFundamentals(ticker: string): Promise<{
   peRatio: number | null;
   latestEarnings: string | null;
 }> {
-  const cacheKey = `yahoo_${ticker}`;
+  const cacheKey = `fund_${ticker}`;
   const cached = cache.get<any>(cacheKey);
   if (cached) return cached;
 
-  try {
-    // v8 chart endpoint — no auth needed, returns price + some fundamentals
-    const chartUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1d`;
-    const chartRes = await fetch(chartUrl, { headers: HEADERS });
-    const chartData = await chartRes.json();
-    const meta = chartData?.chart?.result?.[0]?.meta ?? {};
-    const cmp: number = meta?.regularMarketPrice ?? 0;
+  const endpoints = [
+    `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=defaultKeyStatistics`,
+    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=defaultKeyStatistics`,
+  ];
 
-    // v10 quoteSummary — different endpoint, more reliable than yahoo-finance2 library
-    let peRatio: number | null = null;
-    let latestEarnings: string | null = null;
-
+  for (const url of endpoints) {
     try {
-      const summaryUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=defaultKeyStatistics%2CfinancialData`;
-      const summaryRes = await fetch(summaryUrl, { headers: HEADERS });
-      const summaryData = await summaryRes.json();
-      const stats = summaryData?.quoteSummary?.result?.[0]?.defaultKeyStatistics;
-      const financial = summaryData?.quoteSummary?.result?.[0]?.financialData;
+      const res = await fetch(url, { headers: HEADERS });
+      if (!res.ok) continue;
 
-      peRatio = stats?.trailingPE?.raw ?? financial?.currentPrice?.raw ?? null;
-      const eps = stats?.trailingEps?.raw ?? financial?.revenuePerShare?.raw ?? null;
-      latestEarnings = eps != null ? String(eps) : null;
-    } catch {
-      // PE/EPS fetch failed — still return CMP
-    }
+      const data = await res.json();
+      const stats = data?.quoteSummary?.result?.[0]?.defaultKeyStatistics;
 
-    const result = { cmp, peRatio, latestEarnings };
-    cache.set(cacheKey, result);
-    return result;
+      const peRatio = stats?.trailingPE?.raw ?? null;
+      const eps = stats?.trailingEps?.raw ?? null;
 
-  } catch (err) {
-    console.error(`[YAHOO ERROR] ${ticker}`, (err as Error).message);
-    return { cmp: 0, peRatio: null, latestEarnings: null };
+      const result = {
+        peRatio,
+        latestEarnings: eps != null ? String(eps) : null,
+      };
+
+      cache.set(cacheKey, result);
+      return result;
+    } catch {}
   }
+
+  return { peRatio: null, latestEarnings: null };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Public: fetch full live data for ONE stock
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ── Public: fetch one stock ───────────────────────────────────────────────
 export async function fetchLiveData(ticker: string): Promise<LiveStockData> {
-  const { cmp, peRatio, latestEarnings } = await fetchYahooData(ticker);
+  const [cmp, fundamentals] = await Promise.all([
+    fetchCMP(ticker),
+    fetchFundamentals(ticker),
+  ]);
+
   return {
     ticker,
     cmp,
-    peRatio,
-    latestEarnings,
+    peRatio: fundamentals.peRatio,
+    latestEarnings: fundamentals.latestEarnings,
     lastUpdated: new Date().toISOString(),
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Public: fetch live data for ALL stocks
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ── Public: fetch all stocks ──────────────────────────────────────────────
 export async function fetchAllLiveData(tickers: string[]): Promise<LiveStockData[]> {
   const results = await Promise.allSettled(tickers.map((t) => fetchLiveData(t)));
 

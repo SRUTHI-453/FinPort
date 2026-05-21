@@ -27,7 +27,7 @@ export async function fetchLivePrices(): Promise<LiveUpdate[]> {
 // ── Formatters ─────────────────────────────────────────────────────────────
 
 export function formatCurrency(value: number): string {
-  if (value === 0) return "—";
+  if (value == null || isNaN(value)) return "—";
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
