@@ -6,7 +6,7 @@ A real-time Indian stock portfolio tracker built with Next.js and Node.js, featu
 
 ## 🚀 Live Demo
 
-- **Frontend:** [FinPort Dashboard](https://finport-dashboard.onrender.com)
+- **Frontend:** https://finport-dahboard.onrender.com/
 - **Backend API:** [https://finport-q9q2.onrender.com](https://finport-q9q2.onrender.com)
 
 ---
