@@ -4,7 +4,7 @@ import axios from "axios";
 import { PortfolioApiResponse, LiveUpdate } from "../types";
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+  process.env.NEXT_PUBLIC_API_URL || "https://finport-q9q2.onrender.com/api";
 
 const api = axios.create({ baseURL: BASE_URL, timeout: 15000 });
 
